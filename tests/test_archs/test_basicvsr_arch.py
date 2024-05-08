@@ -7,8 +7,9 @@ def test_basicvsr():
     """Test arch: BasicVSR."""
 
     # model init and forward
-    net = BasicVSR(num_feat=12, num_block=2, spynet_path=None).cuda()
-    img = torch.rand((1, 2, 3, 64, 64), dtype=torch.float32).cuda()
+    device = torch.device("cpu")
+    net = BasicVSR(num_feat=12, num_block=2, spynet_path=None).to(device)
+    img = torch.rand((1, 2, 3, 64, 64), dtype=torch.float32).to(device)
     output = net(img)
     assert output.shape == (1, 2, 3, 256, 256)
 
@@ -39,3 +40,6 @@ def test_iconvsr():
     img = torch.rand((1, 8, 3, 64, 64), dtype=torch.float32).cuda()
     output = net(img)
     assert output.shape == (1, 8, 3, 256, 256)
+
+if __name__ == '__main__':
+    test_basicvsr()

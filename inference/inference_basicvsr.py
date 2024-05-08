@@ -30,7 +30,7 @@ def main():
     parser.add_argument('--interval', type=int, default=15, help='interval size')
     args = parser.parse_args()
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('mps')
 
     # set up model
     model = BasicVSR(num_feat=64, num_block=30)
