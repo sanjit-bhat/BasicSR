@@ -72,7 +72,7 @@ class SpyNet(nn.Module):
             flow = self.basic_module[level](torch.cat([
                 ref[level],
                 flow_warp(
-                    supp[level], upsampled_flow.permute(0, 2, 3, 1), interp_mode='bilinear'),
+                    supp[level], upsampled_flow.permute(0, 2, 3, 1), interp_mode='bilinear', padding_mode='border'),
                 upsampled_flow
             ], 1)) + upsampled_flow
 
