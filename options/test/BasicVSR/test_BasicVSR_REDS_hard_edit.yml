@@ -9,7 +9,7 @@ datasets:
     name: REDS4
     type: VideoRecurrentTestDataset
     dataroot_gt: datasets/REDS4/GT
-    dataroot_lq: datasets/REDS4/sharp_bicubic/X4 # HG: added /X4 to reflect new dataset structure 
+    dataroot_lq: datasets/REDS4/sharp_bicubic/X6 # HG: I added the /X2 dir, if using their data make it X4
     cache_data: True
     io_backend:
       type: disk
@@ -17,7 +17,7 @@ datasets:
 
 # network structures
 network_g:
-  type: BasicVSR
+  type: BasicVSRHardEdit
   num_feat: 64
   num_block: 30
   spynet_path: experiments/pretrained_models/flownet/spynet_sintel_final-3d2a1287.pth
