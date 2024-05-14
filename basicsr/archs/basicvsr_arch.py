@@ -18,9 +18,10 @@ class BasicVSR(nn.Module):
         spynet_path (str): Path to the pretrained weights of SPyNet. Default: None.
     """
 
-    def __init__(self, num_feat=64, num_block=15, spynet_path=None):
+    def __init__(self, num_feat=64, num_block=15, spynet_path=None, scale=4):
         super().__init__()
         self.num_feat = num_feat
+        self.scale = scale
 
         # alignment
         self.spynet = SpyNet(spynet_path)
@@ -31,16 +32,28 @@ class BasicVSR(nn.Module):
 
         # reconstruction
         self.fusion = nn.Conv2d(num_feat * 2, num_feat, 1, 1, 0, bias=True)
-        # upconv1.shape = (256, 64, 3, 3)
-        self.upconv1 = nn.Conv2d(num_feat, num_feat * 4, 3, 1, 1, bias=True)
-        # upconv2.shape = (256, 64, 3, 3)
-        self.upconv2 = nn.Conv2d(num_feat, 64 * 4, 3, 1, 1, bias=True)
+
+        if scale == 2:
+            self.upconv1 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
+        elif scale == 4:
+            # upconv1.shape = (256, 64, 3, 3)
+            self.upconv1 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
+            # upconv2.shape = (256, 64, 3, 3)
+            self.upconv2 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
+        elif scale == 6:
+            self.upconv1 = nn.Conv2d(num_feat, num_feat * (3 ** 2), 3, 1, 1, bias=True)
+            self.upconv2 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
+        else:
+            print('using unsupported scale:', scale)
+            exit(1)
+
         # conv_hr.shape = (64, 64, 3, 3)
         self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
         # conv_last.shape = (3, 64, 3, 3)
         self.conv_last = nn.Conv2d(64, 3, 3, 1, 1)
 
-        self.pixel_shuffle = nn.PixelShuffle(2)
+        self.pixel_shuffle_2 = nn.PixelShuffle(2)
+        self.pixel_shuffle_3 = nn.PixelShuffle(3)
 
         # activation functions
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
@@ -91,22 +104,33 @@ class BasicVSR(nn.Module):
             # upsample
             out = torch.cat([out_l[i], feat_prop], dim=1)
             out = self.lrelu(self.fusion(out))
-            # out shape (1, 64, 180, 320)
-            out = self.upconv1(out)
-            # out shape (1, 256, 180, 320)
-            out = self.pixel_shuffle(out)
-            # out shape (1, 64, 360, 640)
-            out = self.lrelu(out)
-            # out shape (1, 64, 360, 640)
-            out = self.upconv2(out)
-            # out shape (1, 256, 360, 640)
-            out = self.pixel_shuffle(out)
-            # out shape (1, 64, 720, 1280)
-            out = self.lrelu(out)
-            # out shape (1, 64, 720, 1280)
+
+            if self.scale == 2:
+                out = self.lrelu(self.pixel_shuffle_2(self.upconv1(out)))
+            elif self.scale == 4:
+                # out.shape = (1, 64, 180, 320)
+                out = self.upconv1(out)
+                # out.shape = (1, 256, 180, 320)
+                out = self.pixel_shuffle_2(out)
+                # out.shape = (1, 64, 360, 640)
+                out = self.lrelu(out)
+                # out.shape = (1, 64, 360, 640)
+                out = self.upconv2(out)
+                # out.shape = (1, 256, 360, 640)
+                out = self.pixel_shuffle_2(out)
+                # out.shape = (1, 64, 720, 1280)
+                out = self.lrelu(out)
+            elif self.scale == 6:
+                out = self.lrelu(self.pixel_shuffle_3(self.upconv1(out)))
+                out = self.lrelu(self.pixel_shuffle_2(self.upconv2(out)))
+
+            # out.shape = (1, 64, 720, 1280)
             out = self.lrelu(self.conv_hr(out))
+            # out.shape = (1, 64, 720, 1280)
             out = self.conv_last(out)
-            base = F.interpolate(x_i, scale_factor=4, mode='bilinear', align_corners=False)
+            # out.shape = (1, 3, 720, 1280)
+            base = F.interpolate(x_i, scale_factor=self.scale, mode='bilinear', align_corners=False)
+            # base.shape = (1, 3, 720, 1280)
             out += base
             out_l[i] = out
 
