@@ -15,7 +15,7 @@ from .video_base_model import VideoBaseModel
 class VideoRecurrentModelSA(VideoBaseModel):
 
     def __init__(self, opt):
-        super(VideoRecurrentModel, self).__init__(opt)
+        super(VideoRecurrentModelSA, self).__init__(opt)
         if self.is_train:
             self.fix_flow_iter = opt['train'].get('fix_flow')
 
