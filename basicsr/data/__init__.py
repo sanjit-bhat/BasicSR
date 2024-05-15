@@ -21,7 +21,6 @@ dataset_filenames = [osp.splitext(osp.basename(v))[0] for v in scandir(data_fold
 # import all the dataset modules
 _dataset_modules = [importlib.import_module(f'basicsr.data.{file_name}') for file_name in dataset_filenames]
 
-
 def build_dataset(dataset_opt):
     """Build dataset from options.
 
@@ -36,6 +35,28 @@ def build_dataset(dataset_opt):
     logger.info(f'Dataset [{dataset.__class__.__name__}] - {dataset_opt["name"]} is built.')
     return dataset
 
+"""
+SB: bunch of ways to write this.
+This way is having sep _multi func.
+Another way is having scale passed thru dataset_opt.
+Another way is having dataloader return diff scales
+and the training loop figure out the scale.
+"""
+def build_dataset_multi(dataset_opt, scale):
+    """Build dataset from options.
+
+    Args:
+        dataset_opt (dict): Configuration for dataset. It must contain:
+            name (str): Dataset name.
+            type (str): Dataset type.
+    """
+    dataset_opt = deepcopy(dataset_opt)
+    dataset_obj = DATASET_REGISTRY.get(dataset_opt['type'])
+    print(dataset_opt['type'])
+    dataset = dataset_obj(dataset_opt, scale)
+    logger = get_root_logger()
+    logger.info(f'Dataset [{dataset.__class__.__name__}] - {dataset_opt["name"]} is built.')
+    return dataset
 
 def build_dataloader(dataset, dataset_opt, num_gpu=1, dist=False, sampler=None, seed=None):
     """Build dataloader.

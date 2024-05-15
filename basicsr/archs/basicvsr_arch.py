@@ -18,34 +18,36 @@ class BasicVSR(nn.Module):
         spynet_path (str): Path to the pretrained weights of SPyNet. Default: None.
     """
 
-    def __init__(self, num_feat=64, num_block=15, spynet_path=None, scale=4):
+    def __init__(self, num_feat=64, num_block=15, spynet_path=None, trainable=False):
         super().__init__()
         self.num_feat = num_feat
-        self.scale = scale
 
         # alignment
         self.spynet = SpyNet(spynet_path)
+        self.spynet.requires_grad_(trainable)
 
         # propagation
         self.backward_trunk = ConvResidualBlocks(num_feat + 3, num_feat, num_block)
         self.forward_trunk = ConvResidualBlocks(num_feat + 3, num_feat, num_block)
+        self.backward_trunk.requires_grad_(trainable)
+        self.forward_trunk.requires_grad_(trainable)
 
         # reconstruction
         self.fusion = nn.Conv2d(num_feat * 2, num_feat, 1, 1, 0, bias=True)
+        self.fusion.requires_grad_(trainable)
 
-        if scale == 2:
-            self.upconv1 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
-        elif scale == 4:
-            # upconv1.shape = (256, 64, 3, 3)
-            self.upconv1 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
-            # upconv2.shape = (256, 64, 3, 3)
-            self.upconv2 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
-        elif scale == 6:
-            self.upconv1 = nn.Conv2d(num_feat, num_feat * (3 ** 2), 3, 1, 1, bias=True)
-            self.upconv2 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
-        else:
-            print('using unsupported scale:', scale)
-            exit(1)
+        # Scale 2
+        self.upconv2_1 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
+        # Scale 4
+        # upconv1.shape = (256, 64, 3, 3)
+        self.upconv1 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
+        # upconv2.shape = (256, 64, 3, 3)
+        self.upconv2 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
+        # Scale 5
+        self.upconv5_1 = nn.Conv2d(num_feat, num_feat * (5 ** 2), 3, 1, 1, bias=True)
+        # Scale 6
+        self.upconv6_1 = nn.Conv2d(num_feat, num_feat * (3 ** 2), 3, 1, 1, bias=True)
+        self.upconv6_2 = nn.Conv2d(num_feat, num_feat * (2 ** 2), 3, 1, 1, bias=True)
 
         # conv_hr.shape = (64, 64, 3, 3)
         self.conv_hr = nn.Conv2d(64, 64, 3, 1, 1)
@@ -54,6 +56,7 @@ class BasicVSR(nn.Module):
 
         self.pixel_shuffle_2 = nn.PixelShuffle(2)
         self.pixel_shuffle_3 = nn.PixelShuffle(3)
+        self.pixel_shuffle_5 = nn.PixelShuffle(5)
 
         # activation functions
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
@@ -68,6 +71,12 @@ class BasicVSR(nn.Module):
         flows_forward = self.spynet(x_2, x_1).view(b, n - 1, 2, h, w)
 
         return flows_forward, flows_backward
+
+    def set_scale(self, scale):
+        if scale not in [2, 4, 6, 5]:
+            print('unsupported scale:', scale)
+            exit(1)
+        self.scale = scale
 
     def forward(self, x):
         """Forward function of BasicVSR.
@@ -106,7 +115,7 @@ class BasicVSR(nn.Module):
             out = self.lrelu(self.fusion(out))
 
             if self.scale == 2:
-                out = self.lrelu(self.pixel_shuffle_2(self.upconv1(out)))
+                out = self.lrelu(self.pixel_shuffle_2(self.upconv2_1(out)))
             elif self.scale == 4:
                 # out.shape = (1, 64, 180, 320)
                 out = self.upconv1(out)
@@ -120,9 +129,11 @@ class BasicVSR(nn.Module):
                 out = self.pixel_shuffle_2(out)
                 # out.shape = (1, 64, 720, 1280)
                 out = self.lrelu(out)
+            elif self.scale == 5:
+                out = self.lrelu(self.pixel_shuffle_5(self.upconv5_1(out)))
             elif self.scale == 6:
-                out = self.lrelu(self.pixel_shuffle_3(self.upconv1(out)))
-                out = self.lrelu(self.pixel_shuffle_2(self.upconv2(out)))
+                out = self.lrelu(self.pixel_shuffle_3(self.upconv6_1(out)))
+                out = self.lrelu(self.pixel_shuffle_2(self.upconv6_2(out)))
 
             # out.shape = (1, 64, 720, 1280)
             out = self.lrelu(self.conv_hr(out))

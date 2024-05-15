@@ -97,7 +97,12 @@ class SRModel(BaseModel):
         loss_dict = OrderedDict()
         # pixel loss
         if self.cri_pix:
-            l_pix = self.cri_pix(self.output, self.gt)
+            o_shape = self.output.shape
+            gt_shape = self.gt.shape
+            gt_mod = self.gt
+            if o_shape[3] != gt_shape[3] or o_shape[4] != gt_shape[4]:
+                gt_mod = gt_mod[:, :, :, :o_shape[3], :o_shape[4]]
+            l_pix = self.cri_pix(self.output, gt_mod)
             l_total += l_pix
             loss_dict['l_pix'] = l_pix
         # perceptual loss

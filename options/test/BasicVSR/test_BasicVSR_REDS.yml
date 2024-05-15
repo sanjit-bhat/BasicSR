@@ -9,7 +9,7 @@ datasets:
     name: REDS4
     type: VideoRecurrentTestDataset
     dataroot_gt: datasets/REDS4/GT
-    dataroot_lq: datasets/REDS4/sharp_bicubic/X4 # HG: added /X4 to reflect new dataset structure 
+    dataroot_lq: datasets/REDS4/sharp_bicubic/X4
     cache_data: True
     io_backend:
       type: disk
@@ -21,12 +21,11 @@ network_g:
   num_feat: 64
   num_block: 30
   spynet_path: experiments/pretrained_models/flownet/spynet_sintel_final-3d2a1287.pth
-  scale: 4
 
 # path
 path:
   pretrain_network_g: experiments/pretrained_models/BasicVSR/BasicVSR_REDS4-543c8261.pth
-  strict_load_g: true
+  strict_load_g: false
 
 # validation settings
 val:

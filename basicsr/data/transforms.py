@@ -69,8 +69,12 @@ def paired_random_crop(img_gts, img_lqs, gt_patch_size, scale, gt_path=None):
                          f'Please remove {gt_path}.')
 
     # randomly choose top and left coordinates for lq patch
-    top = random.randint(0, h_lq - lq_patch_size)
-    left = random.randint(0, w_lq - lq_patch_size)
+    if gt_patch_size % scale != 0:
+        top = random.randint(0, h_lq - lq_patch_size - 1)
+        left = random.randint(0, w_lq - lq_patch_size - 1)
+    else:
+        top = random.randint(0, h_lq - lq_patch_size)
+        left = random.randint(0, w_lq - lq_patch_size)
 
     # crop lq patch
     if input_type == 'Tensor':

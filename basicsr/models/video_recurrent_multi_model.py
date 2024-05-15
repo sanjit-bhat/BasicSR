@@ -12,12 +12,15 @@ from .video_base_model import VideoBaseModel
 
 
 @MODEL_REGISTRY.register()
-class VideoRecurrentModel(VideoBaseModel):
+class VideoRecurrentModelMulti(VideoBaseModel):
 
     def __init__(self, opt):
-        super(VideoRecurrentModel, self).__init__(opt)
+        super(VideoRecurrentModelMulti, self).__init__(opt)
         if self.is_train:
             self.fix_flow_iter = opt['train'].get('fix_flow')
+
+    def set_scale(self, scale):
+        self.net_g.set_scale(scale)
 
     def setup_optimizers(self):
         train_opt = self.opt['train']
@@ -63,7 +66,7 @@ class VideoRecurrentModel(VideoBaseModel):
                 self.net_g.requires_grad_(True)
         """
 
-        super(VideoRecurrentModel, self).optimize_parameters(current_iter)
+        super(VideoRecurrentModelMulti, self).optimize_parameters(current_iter)
 
     def dist_validation(self, dataloader, current_iter, tb_logger, save_img):
         dataset = dataloader.dataset
