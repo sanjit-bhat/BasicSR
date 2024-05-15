@@ -87,7 +87,6 @@ def load_resume_state(opt):
         check_resume(opt, resume_state['iter'])
     return resume_state
 
-
 def train_pipeline(root_path, scales_supported):
     # parse options, set distributed setting, set random seed
     opt, args = parse_options(root_path, is_train=True)

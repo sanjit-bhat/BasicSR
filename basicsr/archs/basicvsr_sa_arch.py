@@ -20,26 +20,27 @@ class BasicVSRSA(nn.Module):
         spynet_path (str): Path to the pretrained weights of SPyNet. Default: None.
     """
 
-    def __init__(self, num_feat=64, num_block=15, spynet_path=None):
+    def __init__(self, num_feat=64, num_block=15, spynet_path=None, trainable=False):
         super().__init__()
         self.num_feat = num_feat
 
         # alignment
         self.spynet = SpyNet(spynet_path)
+        self.spynet.requires_grad_(trainable)
 
         # propagation
         self.backward_trunk = ConvResidualBlocks(num_feat + 3, num_feat, num_block)
         self.forward_trunk = ConvResidualBlocks(num_feat + 3, num_feat, num_block)
+        self.backward_trunk.requires_grad_(trainable)
+        self.forward_trunk.requires_grad_(trainable)
 
         # reconstruction
         self.fusion = nn.Conv2d(num_feat * 2, num_feat, 1, 1, 0, bias=True)
+        self.fusion.requires_grad_(trainable)
         self.sa_upsample = Upsample(num_feat)
 
         # activation functions
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
-
-        # Default scale = 4
-        self.scale = 4
 
     def get_flow(self, x):
         b, n, c, h, w = x.size()
