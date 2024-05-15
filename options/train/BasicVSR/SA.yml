@@ -53,9 +53,10 @@ network_g:
 # path
 path:
   # pretrain_network_g: experiments/pretrained_models/BasicVSR/BasicVSR_REDS4-543c8261.pth
-  pretrain_network_g: experiments/pretrained_models/BasicVSR/BasicVSR_trim.pth
+  # pretrain_network_g: experiments/pretrained_models/BasicVSR/BasicVSR_trim.pth
+  pretrain_network_g: experiments/pretrained_models/BasicVSR/BasicVSR_trim_sa.pth
   # pretrain_network_g: ~
-  strict_load_g: false
+  strict_load_g: true
   resume_state: ~
 
 # training settings

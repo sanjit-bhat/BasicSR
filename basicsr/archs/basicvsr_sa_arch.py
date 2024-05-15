@@ -20,7 +20,7 @@ class BasicVSRSA(nn.Module):
         spynet_path (str): Path to the pretrained weights of SPyNet. Default: None.
     """
 
-    def __init__(self, num_feat=64, num_block=15, spynet_path=None, trainable=False):
+    def __init__(self, num_feat=64, num_block=15, spynet_path=None, trainable=True):
         super().__init__()
         self.num_feat = num_feat
 
